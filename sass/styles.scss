@@ -1,8 +1,8 @@
 @import url(https://fonts.googleapis.com/css?family=Architects+Daughter);
 @import url(https://fonts.googleapis.com/css?family=Chewy|Kaushan+Script|Lobster+Two|Press+Start+2P|Megrim);
-@import "partials/settings";      // settings must be loaded before components imported by "foundation";
-@import "foundation.scss";        // gulpfile.js sets relative path to foundation;
 @import "partials/clearfix";
+
+// -------------    MUST REMOVE gulpfile.js from folder BEFORE running "meteor"   ---------------
 
 //  ============= Variables ==============
 $font-Arch:  Architects Daughter;

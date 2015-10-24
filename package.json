@@ -16,7 +16,7 @@
     "url": "https://github.com/franpham/ISpy/issues"
   },
   "homepage": "https://github.com/franpham/ISpy#readme",
-  "devDependencies": {
+  "dependencies": {
     "gulp": "^3.9.0",
     "gulp-sass": "^2.0.4"
   }
