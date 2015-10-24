@@ -1,0 +1,16 @@
+<template name="baseLayout">
+  <head>
+  </head>
+  <body>
+    {{> yield}}
+    <script type="text/javascript" src="//api.filepicker.io/v2/filepicker.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/foundation/5.5.3/js/foundation/foundation.tooltip.js"></script>
+    <!-- must link to CDN because version 5.5.3 has unexpected character when browser parses it -->
+  </body>
+</template>
+
+<template name="login">
+  <div id="loginDiv">
+    <h2 id="login">Welcome to I SPY... {{> loginButtons}}</h2>
+  </div>
+</template>

@@ -1,0 +1,174 @@
+@import url(https://fonts.googleapis.com/css?family=Architects+Daughter);
+@import url(https://fonts.googleapis.com/css?family=Chewy|Kaushan+Script|Lobster+Two|Press+Start+2P|Megrim);
+@import "partials/settings";      // settings must be loaded before components imported by "foundation";
+@import "foundation.scss";        // gulpfile.js sets relative path to foundation;
+@import "partials/clearfix";
+
+//  ============= Variables ==============
+$font-Arch:  Architects Daughter;
+$font-Megrim: Megrim;
+
+#topics {
+  width: 128px !important;
+}
+.label {
+  cursor: auto !important;
+}
+
+#upload {
+  color: #008CBA !important;
+}
+#upload:hover {
+  color: #79CBBF;
+}
+
+#heading {
+  font-weight: bold;
+}
+#welcome {
+  padding: 8px 0 0 8px;
+}
+
+.coolImage {
+  cursor: pointer;
+}
+.imgIcon {
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+.iconGroup {
+  opacity: 0.6;
+  font-size: 12pt;
+  font-family: $font-Arch;
+  background-color: #F0E68C;
+}
+
+// ============= Main Content ================
+html, body{
+  background-image: url("images/spectrum.jpg");
+  background-size: cover;
+  background-color: #FAFAFA;
+}
+
+html, body, h1, h2, h3, h4, h5, h6 {
+  text-align:center;
+  font-family: $font-Arch;
+}
+
+#loginDiv {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+#login {
+  display: inline-block;
+  padding: 16px;
+  border-radius: 1em;
+  background-color: #79CBBF;
+  font-family: $font-Arch;
+  opacity: 0.7;
+}
+
+// ============= Top Nav =====================
+header {
+  background-color: #79CBBF;
+  border-bottom: 1px solid #A2A2A2;
+
+  h5{
+    display: inline-block;
+    background-color: #79CBBF;
+    float: left;
+    font-size: 15px;
+    margin-left: 10px;
+  }
+  h3{
+    font-family: $font-Megrim;
+    width: 200px;
+    font-size: 25px;
+    display: inline-block;
+    background-color: #79CBBF;
+  }
+}
+
+// ============ Map Area ===============
+.map-container {
+  width: 100%;
+  max-width: 100%;
+  height: 500px;
+}
+.row {
+  height: 500px;
+  margin-top: 20px;
+}
+#how-to {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #A2A2A2;
+  background-color: white;
+  opacity: 0.6;
+}
+
+// ================ Side-Nav ======================
+.side-nav {
+  border-radius: 10px;
+  border: 1px solid #A2A2A2;
+  padding: 15px;
+  padding-top: 20px;
+  width: 256px;
+  margin-top: 35px;
+  height: 800px;
+  overflow: scroll;
+}
+.reveal-modal{
+  width: 500px;
+}
+
+// =============== Top Buttons ===============
+.button {
+  background-color: transparent;
+  padding: 10px;
+  font-family: $font-Arch;
+  font-size: 20px;
+  color: #008CBA;
+  &:hover {
+    background-color: transparent;
+    color: #79CBBF;
+  }
+}
+
+// ============== Footer ====================
+#borderimg {
+  border: 15px solid transparent;
+  padding: 15px;
+  border-image-source: url("http://i57.tinypic.com/10xxape.gif");
+  border-image-repeat: repeat;
+}
+#logos {
+  padding-right: 15px;
+}
+footer.row {
+  margin-top: 128px;
+}
+#footer-row {
+  height: 128px;
+}
+
+// ============ photo caption ===============
+
+.picDiv {
+  // position: relative;
+}
+.picDiv .caption {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  top: 0px;
+  left: 0px;
+  color: navy;
+  background-color: #F0E68C;
+  text-align: center;
+  font-weight: bold;
+  opacity: 0.6;
+}

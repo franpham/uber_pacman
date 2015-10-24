@@ -1,0 +1,12 @@
+
+// COMMENTS MUST BE OUTSIDE OF {...}, KEYS MUST BE QUOTED, AND GLOBALS IN DEFAULT .jshintrc MUST BE REDECLARED IN LOCAL .jshintrc
+{
+  "browser": true,
+  "jquery": true,
+  "esnext": true,
+  "globals": {"console": false, "Meteor": false, "Template": false, "GoogleMaps": false, "Markers": false, "ImageData": false, "google": false},
+  "globalstrict": true,
+  "quotmark": false,
+  "undef": true,
+  "unused": true
+}

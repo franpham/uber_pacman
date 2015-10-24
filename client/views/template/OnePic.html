@@ -1,0 +1,14 @@
+
+<template name="onePic">
+  <div id="{{markerId}}_tip" class="picDiv has-tip round" title="" data-tooltip>
+    <div>
+      <img id="{{_id}}" name="{{userId}}" src="{{picUrl}}" class="coolImage">
+    </div>
+    <div class="button-group round iconGroup">
+      <span id="{{markerId}}_cap" class="caption"></span>
+      <img id="like" src="images/heart.jpg" alt="Like" class="imgIcon">
+      <img id="dislike" src="images/unheart.png" alt="Dislike" class="imgIcon">
+      <button class="button" data-fp-mimetype="image/jpg" data-fp-button-text="Save" data-fp-suggestedFilename="ISpy-{{_id}}" data-fp-url="{{picUrl}}">Save</button>
+    </div>
+  </div>
+</template>

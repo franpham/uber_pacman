@@ -1,0 +1,87 @@
+<template name="main">
+  <title>I Spy... </title>
+  <!-- Welcome -->
+  <header>
+    <h5 id="welcome">Welcome {{> loginButtons}}</h5>
+    <h3 id="heading">I Spy ...</h3>
+  </header>
+
+  <!-- MAP -->
+  <div class="row">
+    <div class="large-9 push-3 columns">
+      <ul class="button-group round">
+        <li>
+          <span class="label button">Topics: </span>
+          <select id="topics" name="select" require="true" class="button">
+            <option value="myPics">My Photos</option>
+            <option value="hotGuys">Hot Guys</option>
+            <option value="hotGirls">Hot Girls</option>
+            <option value="cuteCats" selected>Cute Cats</option>
+            <option value="cuteDogs">Cute Dogs</option>
+            <option value="coolCars">Cool Cars</option>
+            <option value="landmarks">Landmarks</option>
+            <option value="venues">Venues</option>
+            <option value="events">Events</option>
+            <option value="selfies">Selfie</option>
+            <option value="traffic">Traffic</option>
+          </select>
+        </li>
+        <li>
+          <input id="upload" class="button" type="filepicker" data-fp-apikey="AL1xLgWq0SsykUvj3fM0lz" data-fp-button-text="Upload Photo" data-fp-mimetypes="image/*" data-fp-multiple="false" data-fp-store-location="s3" data-fp-maxsize="5500000">
+        </li>
+      </ul>
+      <div class="map-container">
+        {{> googleMap name="map" options=mapOptions}}
+        <!-- googleMap is a template from dburles:google-maps -->
+      </div>
+
+      <div id="how-to">
+        <p>
+          <u><b>How this works: </b></u>
+          Saw someone cute or something cool? Snap a photo, upload it, and select its location on the map to let others know what and where you saw it (for phones with GPS enabled, this app will detect the location for you).
+        </p>
+        <p>
+          Browse through local photos and see what others have spyed recently! To see the photo's location, click on the image to have it's location centered (some photos may not have a location specified). To delete your photo, just double click the image.
+        </p>
+      </div>
+    </div>
+  <!-- LEFT SIDE -->
+  <div class="large-3 pull-9 columns">
+    <p class="side-nav">
+      <h4 class="label button"><u>Latests Pics</u></h4>
+      {{#each topicPics}}
+        {{> onePic}}
+      {{/each}}
+    </p>
+  </div>
+  </div>
+
+<!-- FOOTER -->
+<footer class="row">
+  <div class="large-12 columns">
+  <hr/>
+    <div class="row" id="footer-row">
+      <div class="large-6 columns" id="footer-row">
+        <p>
+          <img src="http://i57.tinypic.com/10xxape.gif">
+          <a href="https://github.com/franpham">© Francis</a>,
+          <a href="https://github.com/ndunhourowens">Naomi</a>,
+          <a href="https://github.com/styel07">El</a>,
+          <a href="https://github.com/kasona">&amp; Kasi</a>
+          <img src="http://i57.tinypic.com/10xxape.gif">
+        </p>
+      </div>
+      <div class="large-6 columns">
+        <ul class="inline-list right">
+          <a href="https://www.meteor.com/" id="logos">
+            <img src="http://i57.tinypic.com/2wguotl.png"></a>
+          <a href="https://github.com/franpham/" id="logos">
+            <img src="http://i62.tinypic.com/ifpg1i.png"></a>
+          <a href="http://www.devleague.com/" id="logos">
+            <img src="http://i60.tinypic.com/dy97x1.png"></a>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
+</template>
