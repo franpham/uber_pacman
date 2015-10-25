@@ -15,7 +15,7 @@ Router.configure({
     }
     else if (Router.current().route.getName() === 'login') {
       Meteor.logoutOtherClients();
-      this.redirect('main/1');    // ROUTE TO GAME #1 BY DEFAULT;   -----------
+      this.redirect('/main/1');    // ROUTE TO GAME #1 BY DEFAULT;   -----------
       // console.log('Router: logged in, redirecting from login');
     }
     // else
@@ -29,7 +29,7 @@ Router.route('/callback', function() {
 });
 
 Router.route('/', { template: '' });
-Router.route('/login', { template: '', name: 'login' });
-Router.route('/main/:gameId');
-Router.route('/404/:gameId');
+Router.route('/login', { template: '', name: 'login' });  // MUST specify name;
+Router.route('/main/:gameId', { template: 'main' });      // MUST specify template;
+Router.route('/404/:gameId', { template: '404' });
 // By default the router will render the capitalized name of the template, with punctuations removed and next letter capped.

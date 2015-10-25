@@ -1,5 +1,8 @@
 "use strict";
 var FRUITS = ['images/rsz_apple.png', 'images/rsz_banana.png', 'images/rsz_cherry.png', 'images/pineapple.png', 'images/rsz_strawberry.png', 'images/rsz_watermelon.png'];
+// var GHOSTS = ['images/rsz_green-ghost.png', 'images/rsz_orange-ghost.png', 'images/rsz_pink-ghost.png', 'images/rsz_red-ghost.png', 'images/rsz_yellow-ghost.png'];
+var GHOSTS = ['http://i.imgsafe.org/890ad61.png', 'http://i.imgsafe.org/7945ddc.png', 'http://i.imgsafe.org/a4574c8.png', 'http://i.imgsafe.org/c0ef571.png', 'http://i.imgsafe.org/dcafa3b.png', 'http://i.imgsafe.org/fc204d8.png'];
+var PACMANPIC = 'http://i.imgsafe.org/2dcae71.png';
 
 var markers = {};           // the current players on the map;
 var mapInstance = null;     // needed to add map markers & listeners;
@@ -12,7 +15,7 @@ var playerIndex = 0;        // the pic index of each player;
 var gameId = 0;             // the game being played;
 
 Meteor.startup(function() {
-  GoogleMaps.load();
+  GoogleMaps.load({ libraries: 'places' });
 });
 Template.main.rendered = function() {
 };      // rendered is called only once: http://www.meteorpedia.com/read/Blaze_Notes#Template hooks
@@ -41,29 +44,30 @@ Template.main.events({
 });
 
 function createMarker(marker) {
+  var icon = marker.isGhost ? GHOSTS[playerIndex % GHOSTS.length] : PACMANPIC;
   var markerObj = new google.maps.Marker({
     animation: google.maps.Animation.DROP,
     position: new google.maps.LatLng(marker.lat, marker.lng),
+    icon: icon,
     draggable: false,
     map: mapInstance,
     userId: marker.userId,
     title: marker.username,
-    icon: ghosts[playerIndex],
-    label: playerIndex,
+    label: playerIndex + '',
     points: marker.points,
     isGhost: marker.isGhost,
-    _id: marker._id       // the Marker's _id;
+    _id: marker._id       // the _id in Markers;
   });
   if (marker.userId === Meteor.userId())
     markMe = markerObj;
   var playerInfo = $('<li id="' + marker._id + '_name" />').append($('<span id="' + marker._id + '_pts />').text(marker.points))
     .text(playerIndex + '. ' + marker.username + ': ');
-  $('#playerList').add(playerInfo);
+  $('#playerList').append(playerInfo);
   playerIndex++;     // increment playerIndex;
   addMarker(markerObj);
 }
 
-// newDocument & oldDocument are Mongo Markers objects; remove Marker from Map to set new position;
+// newDocument & oldDocument are Mongo Markers objects; remove marker from Map to set new position;
 function changeMarker(newDocument, oldDocument) {
   markers[oldDocument._id].setMap(null);
   markers[oldDocument._id].setPosition(new google.maps.LatLng(newDocument.lat, newDocument.lng));
@@ -93,7 +97,9 @@ function addMarker(marker) {      // update the marker's coordinates after dragg
 function observeMarkers(userIds) {
   Markers.find({ _id: { $in: userIds }}).observe({
     added: function(newDocument) {         // ADDED IS ALSO CALLED WHEN OBSERVE IS CALLED;
-      createMarker(newDocument);
+      $(window).load(function() {
+        createMarker(newDocument);
+      });
     },
     changed: function(newDocument, oldDocument) {
       changeMarker(newDocument, oldDocument);   // newDocument & oldDocument are Markers objects;
@@ -104,6 +110,13 @@ function observeMarkers(userIds) {
   });
 }
 
+function detectGhosts() {
+  var keys = Object.keys(markers);
+  for (var i = 0; i < keys.length; i++) {
+
+  }
+}
+
 Template.main.onCreated(function() {
   var self = this;      // set BEFORE GoogleMaps.ready();
   GoogleMaps.ready('map', function(map) {
@@ -111,13 +124,21 @@ Template.main.onCreated(function() {
     googler = google.maps;
     mapInstance = map.instance;
     infoWindow = new google.maps.InfoWindow({ content: '' });
-    gameId = Router.current().params.gameId;
+    gameId = Router.current().params.gameId;    // set gameId and create default game;
     var game = Games.findOne({ _id: gameId });
+    var geo = Geolocation.latLng();
+    if (!geo)
+      geo = { lat: 21.30886, lng: -157.80858 };
 
-    if (!game)
-      return Router.go('/404/' + gameId);     // redirect if no game found;
-    else
-      mapInstance.setCenter(new google.maps.LatLng(game.lat, game.lng));
+    if (!game) {
+      if (gameId === '1') {     // params are ALWAYS STRINGS;
+        Games.insert({ _id: gameId, lat: geo.lat, lng: geo.lng, players: {} });
+        game = Games.findOne({ _id: gameId });
+      }
+      else
+        return Router.go('/404/' + gameId);     // redirect if no game found;
+    }
+    mapInstance.setCenter(new google.maps.LatLng(game.lat, game.lng));
     self.autorun(function() {     // ------------   AUTO UPDATE THE USER'S POSITION   ------------
       var geo = Geolocation.latLng();
       if (!Meteor.userId() || !geo)
@@ -126,25 +147,27 @@ Template.main.onCreated(function() {
         markMe.setPosition(geo);
         mapInstance.setCenter(geo);    // update the DB to reactively update others;
         Markers.update({ _id: markMe._id }, { $set: { lat: geo.lat, lng: geo.lng }});
+        detectGhosts();
       }
     });
 
-    var markerId = 0;   // ------------------ set "this" player's Marker -----------------;
+    var markerId = 0;   // ------------------ set "this" player's Markers object -----------------;
     var initId = Meteor.setTimeout(function() {
       var gamers = game.players;
       var geo = Geolocation.latLng();
-      var document = Marker.findOne({ userId: Meteor.userId() });
+      var document = Markers.findOne({ userId: Meteor.userId() });
       if (markerId) {     // must check markerId to prevent multiple Markers insertions;
         Meteor.clearTimeout(initId);
       }
       else if (Meteor.userId() && geo) {
+        var isGhost = Object.keys(gamers).length > 0;     // first gamer to play is the PACMAN!
         if (!document) {      // user has never played, SO INSERT NEW MARKER!
           // Markers fields: _id, lat, lng, userId, username, points, isGhost, lastCollide
           markerId = Markers.insert({ lat: geo.lat, lng: geo.lng, startTime: Date.now(), userId: Meteor.userId(),
-                          username: Meteor.user().username, points: 0, isGhost: false, lastCollide: 0 });
+                          username: Meteor.user().username, points: 0, isGhost: isGhost, lastCollide: 0 });
         }
-        else {           // user joining this game, so update Marker;
-          Markers.update({ _id: document._id }, { $set: { lat: geo.lat, lng: geo.lng, startTime: Date.now() }});
+        else {           // user joining this game, so update Markers;
+          Markers.update({ _id: document._id }, { $set: { lat: geo.lat, lng: geo.lng, startTime: Date.now(), isGhost: isGhost }});
           markerId = document._id;
         }
         gamers[markerId] = document ? document.points : 0;
@@ -172,14 +195,13 @@ Template.main.onCreated(function() {
       }
     });
 
-    var barImg = 'images/beer.png';
+    var barImg = 'images/rsz_beer.png';
     var service = new google.maps.places.PlacesService(mapInstance);
     service.nearbySearch({
       location: { lat: geo.lat, lng: geo.lng },
       radius: 500,
       types: ['bar']
       }, processResults);
-    barImg = null;    // set to null for fruit images;
     service.nearbySearch({
       location: { lat: geo.lat, lng: geo.lng },
       radius: 500,
@@ -201,6 +223,7 @@ Template.main.onCreated(function() {
             });
           }
         }
+        barImg = null;    // set to null for fruit images;
       }
     }
     function createMarkers(places) {
