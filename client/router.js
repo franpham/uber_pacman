@@ -24,7 +24,66 @@ Router.configure({
   }
 });
 
-// Router.route('/game');   // page to select game to join;
+Router.route('/callback', function() {
+  console.log(this.params.query.code);
+  console.log(Meteor.userId() );
+  this.redirect('/authorize?code=' + this.params.query.code + "&userId=" + Meteor.userId() )
+});
+
+Router.route('/bookUber', function() {
+    var reallyLoggedIn = function() {
+      var user = Meteor.user();
+      if (!user) return false;
+      else if (!user.profile) return false;
+      else return true;
+    };
+
+    // alert('Booking Uber!')
+
+
+    if (!reallyLoggedIn() ) {
+      this.redirect('/authWithUber');
+      return;
+    }
+
+    // console.log(Meteor.user());
+    // console.log(Meteor.user().profile);
+    // console.log(Meteor.user().profile['accessToken']);
+
+
+    var access_token = Meteor.user().profile['accessToken'];
+    // // console.log(access_token);
+    // alert(access_token);
+
+    HTTP.call( 'POST', 'https://sandbox-api.uber.com/v1/requests', 
+      {
+        params: {
+          "product_id": "6e731b60-2994-4f68-b586-74c077573bbd",
+          "start_latitude": 21.3,
+          "start_longitude": -157.85,
+          "end_latitude": 21.2,
+          "end_longitude": -157.80,
+        },
+        headers: {
+          "Authorization": "Bearer " + access_token,
+        },
+      },
+      function( error, response ) {
+        // alert('booked!');
+
+        console.log("blah");
+        console.log(error);
+        console.log(response);
+
+        Router.go('/main/1')  
+      }
+    );
+  // self.response.statusCode = 302;
+  // self.response.setHeader('Location', '/main/1');
+  // self.response.end('Arbitrary success message');          
+
+});
+
 Router.route('/', { template: '' });
 Router.route('/login', { template: '', name: 'login' });  // MUST specify name;
 Router.route('/main/:gameId', { template: 'main' });      // MUST specify template;
