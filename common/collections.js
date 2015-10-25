@@ -1,6 +1,6 @@
 
 Markers = new Mongo.Collection('markers');    // Markers have 1-to-1 correspondence to Users;
-// Markers fields: _id, lat, lng, userId, username, gameId, points, isGhost
+// Markers fields: _id, lat, lng, userId, username, gameId, points, isGhost, lastCollide
 // 1st player in each game is Pacman, new players are ghosts;
 
 Games = new Mongo.Collection('games');

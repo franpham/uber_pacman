@@ -3,14 +3,22 @@
   </head>
   <body>
     {{> yield}}
-    <script type="text/javascript" src="//api.filepicker.io/v2/filepicker.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/foundation/5.5.3/js/foundation/foundation.tooltip.js"></script>
-    <!-- must link to CDN because version 5.5.3 has unexpected character when browser parses it -->
   </body>
 </template>
 
 <template name="login">
   <div id="loginDiv">
-    <h2 id="login">Welcome to I SPY... {{> loginButtons}}</h2>
+    <h2 id="login">Play Uber Pac-Man ... {{> loginButtons}}</h2>
   </div>
+</template>
+
+<template name="404">
+  <marquee direction="down" width="100%" height="100%" behavior="alternate" style="border:solid">
+    <marquee behavior="alternate">
+    <img src="http://i60.tinypic.com/2jozb.png">
+    <div id="error">
+      <p id="error"> ERROR NOT FOUND</p>
+    </div>
+    </marquee>
+  </marquee>
 </template>
