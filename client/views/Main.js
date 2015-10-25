@@ -6,7 +6,6 @@ var googler = null;         // needed by outer functions;
 var infoWindow = null;      // pop-up that's reused when marker is clicked;
 var markMe = null;          // marker of "this" player;
 var playerIndex = 0;        // the pic index of each player;
-var initId = 0;             // the Timeout ID to set markMe;
 
 Meteor.startup(function() {
   GoogleMaps.load();
@@ -23,11 +22,10 @@ Template.main.helpers({
   },
   topicPics: function() {
     var thisGame = Router.current().params.gameId;
-    var query = { gameId: thisGame };
+    var query = { _id: thisGame };
     if (googler) {              // if no googler, markers are set by observe() in GoogleMaps.ready();
       Meteor.setTimeout(function() {
         var images = ImageData.find(query).fetch();
-        players = images.length;
         refreshMap(images);          // SET THE NEW MARKERS;
       }, 1000);                      // HACK: wait 1 sec so Meteor can finish templating;
     }
@@ -49,8 +47,12 @@ function createMarker(marker) {
     isGhost: marker.isGhost,
     _id: marker._id       // the Marker's _id;
   });
-  $('#' + marker._id + '_info').text(playerIndex + '. ' + marker.username + ': ' + marker.points);
-  playerIndex++;          // increment playerIndex;
+  if (marker.userId === Meteor.userId())
+    markMe = markerObj;
+  var playerInfo = $('<li id="' + marker._id + '_info" />').append($('<span id="' + marker._id + '_pts />').text(marker.points))
+    .text(playerIndex + '. ' + marker.username + ': ');
+  $('#playerList').add(playerInfo);
+  playerIndex++;     // increment playerIndex;
   addMarker(markerObj);
 }
 
@@ -61,26 +63,24 @@ function changeMarker(newDocument, oldDocument) {
   markers[oldDocument._id].setMap(mapInstance);
 }
 
-// removeMarker expects a google.maps.Marker INSTANCE;
 function removeMarker(marker) {
   // googler.event.clearInstanceListeners(marker);
+  $('#playerList').remove('#' + marker._id + '_info');
   delete markers[marker._id];   // remove the reference to the marker
   marker.setMap(null);          // remove the marker from the map
+  // DO NOT decrement playerIndex, else markers' labels will not to change also;
 }
 
-// addMarker expects a google.maps.Marker INSTANCE;
 function addMarker(marker) {      // update the marker's coordinates after dragging;
   // googler.event.addListener(marker, 'dragend', function(event) {
   // });
-  // ------------------    MARKERS ARE UPDATED WHENEVER USER FINISH DRAGGING IT    --------------
-
   marker.addListener('click', function() {
     var marker = markers[this._id];
-    var info = '<div class="player">' + marker.username + ': ' + marker.points + '</div>';
+    var info = '<div class="marker_info">' + marker.username + ': ' + marker.points + '</div>';
     infoWindow.setContent(info);
     infoWindow.open(mapInstance, marker);
   });
-  markers[marker._id] = marker;   // Store marker instance within the markers dict;
+  markers[marker._id] = marker;   // Store marker instance within the markers object;
 }
 
 function observeMarkers(userIds) {
@@ -97,7 +97,7 @@ function observeMarkers(userIds) {
   });
 }
 
-// NEED EVENT HANDLER FOR LOGGING OUT;
+// NEED EVENT HANDLER FOR QUITTING GAME;
 
 Template.main.onCreated(function() {
   var self = this;      // set BEFORE GoogleMaps.ready();
@@ -108,18 +108,18 @@ Template.main.onCreated(function() {
     infoWindow = new google.maps.InfoWindow({ content: '' });
     var gameId = Router.current().params.gameId;
     var game = Games.findOne({ _id: gameId });
+
     if (!game)
       return Router.go('/404/' + gameId);     // redirect if no game found;
     else
       mapInstance.setCenter(new google.maps.LatLng(game.lat, game.lng));
-
     self.autorun(function() {     // --------------   AUTO UPDATE THE USER'S POSITION   ---------------------
       var geo = Geolocation.latLng();
       if (!Meteor.userId() || !geo)
         return;
       else if (markMe) {
         markMe.setPosition(geo);
-        mapInstance.setCenter(markMe.getPosition());    // update the DB to reactively update others;
+        mapInstance.setCenter(geo);    // update the DB to reactively update others;
         Markers.update({ _id: markMe._id }, { $set: { lat: geo.lat, lng: geo.lng }});
       }
     });
@@ -142,36 +142,32 @@ Template.main.onCreated(function() {
       });
     }; // -----------------  MARKERS ARE INSERTED WHENEVER USER CLICKS ON THE MAP  -------------------------
 
-    initId = Meteor.setTimeout(function() {   // set "this" player's Marker;
+    var markerId = 0;
+    var initId = Meteor.setTimeout(function() {   // set "this" player's Marker;
+      var gamers = game.players;
       var geo = Geolocation.latLng();
-      if (markMe) {
+      var document = Marker.findOne({ userId: Meteor.userId() });
+      if (markerId) {     // must check markerId to prevent multiple Markers insertions;
         Meteor.clearTimeout(initId);
       }
       else if (Meteor.userId() && geo) {
-        var document = Marker.findOne({ userId: Meteor.userId() });
-        markMe = new google.maps.Marker({
-          animation: google.maps.Animation.DROP,
-          position: new google.maps.LatLng(geo.lat, geo.lng),
-          draggable: false,
-          map: mapInstance,
-          userId: document.userId,
-          title: document.username,
-          label: playerIndex,
-          points: document.points,
-          isGhost: document.isGhost,
-          _id: document._id     // the Marker's _id;
-        });
-        Markers.update({ _id: markMe._id }, { $set: { lat: geo.lat, lng: geo.lng }});
-        $('#' + document._id + '_info').text(playerIndex + '. ' + document.username + ': ' + document.points);
-        playerIndex++;          // increment playerIndex;
-        addMarker(markMe);
-      }
+        if (!document) {      // user has never played, SO INSERT NEW MARKER!
+          // Markers fields: _id, lat, lng, userId, username, points, isGhost
+          markerId = Markers.insert({ lat: geo.lat, lng: geo.lng, userId: Meteor.userId(),
+                          username: Meteor.user().username, points: 0, isGhost: false });
+        }
+        else {           // user joining this game, so update Marker;
+          Markers.update({ _id: document._id }, { $set: { lat: geo.lat, lng: geo.lng }});
+          markerId = document._id;
+        }
+        gamers[markerId] = document ? document.points : 0;
+        Games.update({ _id: game._id }, { $set: { players: gamers }});
+      }             // update the Game to broadcast BOTH new/ updated Markers to current players;
     }, 1000);
 
-    // observe the Game so when new players are added to a Game, new Markers are created;
-    Games.find({ _id: gameId }).observe({
+    // observe the Game so when new players join a Game, new map markers are created;
+    Games.find({ _id: game._id }).observe({
       added: function(newDocument) {
-        // Markers (Users) fields: _id, lat, lng, userId, username, gameId, points, isGhost
         var userIds = Object.keys(newDocument.players);    // only observe players in current Game;
         observeMarkers(userIds);
       },
