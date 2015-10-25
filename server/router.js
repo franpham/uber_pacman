@@ -3,6 +3,7 @@ Router.route('/authorize', { where: 'server' })
     var code = this.params.query.code
     console.log("code: " + code);
     console.log("userId: " + this.params.query.userId );
+    var userId = this.params.query.userId;
 
     // self = the "this" context in Router.get(function() { })
     var self = this
@@ -51,6 +52,11 @@ Router.route('/authorize', { where: 'server' })
         function( error, response ) {
           console.log(response)
           console.log(response.content)
+
+          var profile = Meteor.users.findOne({_id: userId })
+          profile['accessToken'] = access_token;
+          console.log(profile);
+          Meteor.users.update({ _id: userId }, { $set: { profile: profile }});
 
           self.response.statusCode = 302;
           self.response.setHeader('Location', '/');
