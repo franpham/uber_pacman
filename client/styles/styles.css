@@ -7,6 +7,10 @@
 #welcome {
   padding: 8px 0 0 8px; }
 
+#login {
+  color: yellow;
+}
+
 /* line 15, stdin */
 html, body {
   background-color: #2F4F4F;
@@ -176,3 +180,87 @@ a.button.expand {
 #error {
   color: blue;
   font-size: 20px; }
+
+
+
+/*========  pacman marquee =========*/
+#backnforth.reverseAnimation {
+    animation: back 10s 1;
+    display: inline-block;
+    position: relative;
+    left: 50vw;
+}
+
+#backnforth {
+    left: 0;
+    position: relative;
+    animation: forward 10s 1;
+    margin-top: 35%;
+}
+.pacman.reverse {
+    transform: scaleX(-1) scaleY(1);
+}
+@keyframes forward {
+    from {
+        left: 0px;
+    }
+    to {
+        left: 80vw;
+    }
+}
+
+@keyframes back {
+    from {
+        left: 80vw;
+    }
+    to {
+        left: 0;
+    }
+}
+#ghost1 {
+    display:inline-block;
+    background-size: cover;
+    height: 50px;
+    width: 50px;
+    background-image: url("images/rsz_yellow-ghost.png");
+}
+#ghost2 {
+    display:inline-block;
+    background-size: cover;
+    height: 50px;
+    width: 50px;
+    background-image: url("images/rsz_green-ghost.png");
+}
+#ghost3 {
+    display:inline-block;
+    background-size: cover;
+    height: 50px;
+    width: 50px;
+    background-image: url("images/rsz_red-ghost.png");
+}
+#ghost4 {
+    display:inline-block;
+    background-size: cover;
+    height: 50px;
+    width: 50px;
+    background-image: url("images/rsz_pink-ghost.png");
+}
+#ghost5 {
+    display:inline-block;
+    background-size: cover;
+    height: 50px;
+    width: 50px;
+    background-image: url("images/rsz_orange-ghost.png");
+}
+#pacman {
+    display:inline-block;
+    background-size: cover;
+    height: 50px;
+    width: 50px;
+    background-image: url("images/rsz_pacman.png");
+}
+.blueGhost {
+    height: 50px;
+    width: 50px;
+    background-image: url("/public/images//public/images/rsz_blue-ghost.png") !important;
+}

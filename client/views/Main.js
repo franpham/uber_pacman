@@ -1,8 +1,10 @@
 "use strict";
-var FRUITS = ['images/rsz_apple.png', 'images/rsz_banana.png', 'images/rsz_cherry.png', 'images/pineapple.png', 'images/rsz_strawberry.png', 'images/rsz_watermelon.png'];
+// var FRUITS = ['images/rsz_apple.png', 'images/rsz_banana.png', 'images/rsz_cherry.png', 'images/pineapple.png', 'images/rsz_strawberry.png', 'images/rsz_watermelon.png'];
 // var GHOSTS = ['images/rsz_green-ghost.png', 'images/rsz_orange-ghost.png', 'images/rsz_pink-ghost.png', 'images/rsz_red-ghost.png', 'images/rsz_yellow-ghost.png'];
+var FRUITS = ['http://i.imgsafe.org/446c7c1.png', 'http://i.imgsafe.org/455b22f.png', 'http://i.imgsafe.org/45e983d.png', 'http://i.imgsafe.org/479a090.png', 'http://i.imgsafe.org/43dd733.png', 'http://i.imgsafe.org/46cba67.png'];
 var GHOSTS = ['http://i.imgsafe.org/890ad61.png', 'http://i.imgsafe.org/7945ddc.png', 'http://i.imgsafe.org/a4574c8.png', 'http://i.imgsafe.org/c0ef571.png', 'http://i.imgsafe.org/dcafa3b.png', 'http://i.imgsafe.org/fc204d8.png'];
-var PACMANPIC = 'http://i.imgsafe.org/2dcae71.png';
+var PACMANPIC = 'http://i.imgsafe.org/be24fe1.gif';
+// var PACMANPIC = 'http://i.imgsafe.org/2dcae71.png';
 
 var markers = {};           // the current players on the map;
 var mapInstance = null;     // needed to add map markers & listeners;
@@ -24,7 +26,7 @@ Template.main.helpers({
   mapOptions: function() {
     if (GoogleMaps.loaded()) {
       var geo = Geolocation.latLng();
-      return { zoom: 12, center: (geo ? new google.maps.LatLng(geo.lat, geo.lng) : new google.maps.LatLng(21.30886, -157.80858)) };
+      return { zoom: 15, center: (geo ? new google.maps.LatLng(geo.lat, geo.lng) : new google.maps.LatLng(21.30886, -157.80858)) };
     }
   }
 });
@@ -56,6 +58,8 @@ function createMarker(marker) {
     label: playerIndex + '',
     points: marker.points,
     isGhost: marker.isGhost,
+    isPowered: false,
+    timer: 0,
     _id: marker._id       // the _id in Markers;
   });
   if (marker.userId === Meteor.userId())
@@ -69,9 +73,15 @@ function createMarker(marker) {
 
 // newDocument & oldDocument are Mongo Markers objects; remove marker from Map to set new position;
 function changeMarker(newDocument, oldDocument) {
-  markers[oldDocument._id].setMap(null);
-  markers[oldDocument._id].setPosition(new google.maps.LatLng(newDocument.lat, newDocument.lng));
-  markers[oldDocument._id].setMap(mapInstance);
+  var marker = markers[oldDocument._id];
+  marker.setMap(null);
+  marker.setPosition(new google.maps.LatLng(newDocument.lat, newDocument.lng));
+  marker.setMap(mapInstance);
+  marker.lat = newDocument.lat;
+  marker.lng = newDocument.lng;
+  marker.points = newDocument.points;
+  marker.isGhost = newDocument.isGhost;
+  marker.timer = newDocument.timer;
 }
 
 function removeMarker(marker) {
@@ -113,7 +123,73 @@ function observeMarkers(userIds) {
 function detectGhosts() {
   var keys = Object.keys(markers);
   for (var i = 0; i < keys.length; i++) {
+    var marker = markers[keys[i]];
+    if (markMe === marker)    // Pacman is in same array as Ghosts!
+      continue;
+    else if ((Date.now() - markMe.timer) / 1000 <= 300 &&
+      Math.abs(markMe.lat - marker.lat) < 0.00005 && Math.abs(markMe.lng - marker.lng) < 0.00005) {
+      var wasGhost = markMe.isGhost;
+      if (!markMe.isGhost && marker.isPowered) {
+        var halfpoints = parseInt(marker.points / 2);
+        var points = markMe.points + halfpoints;
+        Markers.update({ _id: markMe._id }, { $set: { points: points }});   // don't set timer for Pacman;
+        Markers.update({ _id: marker._id }, { $set: { points: halfpoints, timer: Date.now() }});
+        marker.time = Date.now();
+      }
+      else if (!markMe.isGhost) {
+        markMe.timer = Date.now();    // set Pacman timer for changing to Ghost;
+        marker.timer = 0;       // Ghost becomes Pacman, so reset timer;
+        Markers.update({ _id: markMe._id }, { $set: { isGhost: true, timer: Date.now() }});
+        Markers.update({ _id: marker._id }, { $set: { isGhost: false, timer: 0 }});
+        markMe.setIcon(marker.getIcon());
+        marker.setIcon(PACMANPIC);    // Pacman becomes Ghost, and Ghost becomes Pacman;
+      }
+      if (markMe.isPowered && (Date.now() - markMe.timer) / 1000 > 300) {    // if > 5 mins;
+        Markers.update({ _id: markMe._id }, { $set: { isPowered:false, timer: 0 }});
+        markMe.timer = 0;
+      }
+      $('#notice').text(wasGhost ? 'You were eaten by PacMan!' : 'You just ate a Ghost!');
+    } // ONLY CODE FOR PACMAN, GHOSTS WILL GET UPDATES REACTIVELY;
+  }
+}
 
+function detectPowerUps() {
+  for (var i = 0; i < powerups.length; i++) {
+    var marker = powerups[i];
+    if ((Date.now() - markMe.timer) / 1000 <= 300 &&
+      Math.abs(markMe.lat - marker.lat) < 0.00005 && Math.abs(markMe.lng - marker.lng) < 0.00005) {
+      Markers.update({ _id: markMe._id }, { $set: { isPowered: true, timer: Date.now() }});
+      markMe.timer = Date.now();
+      var index = powerups.indexOf(marker);
+      if (index >= 0)
+        powerups.splice(index, 1);
+      marker.setMap(null);    // remove powerup from map;
+      $('#notice').text('You ate a Power-Up!');
+      break;                  // can only power up once!
+    }
+    else if (markMe.isPowered && (Date.now() - markMe.timer) / 1000 > 300) {     // if > 5 mins;
+      Markers.update({ _id: markMe._id }, { $set: { isPowered:false, timer: 0 }});
+      markMe.timer = 0;
+    }
+  }
+}
+
+function detectBonuses() {
+  for (var i = 0; i < bonuses.length; i++) {
+    var marker = bonuses[i];
+    if (Math.abs(markMe.lat - marker.lat) < 0.00005 && Math.abs(markMe.lng - marker.lng) < 0.00005) {
+      Markers.update({ _id: markMe._id }, { $set: { points: markMe.points + 100 }});
+      markMe.points += 100;
+      var index = bonuses.indexOf(marker);
+      if (index >= 0)
+        bonuses.splice(index, 1);
+      marker.setMap(null);    // remove bonus from map;
+      $('#notice').text('You ate a Bonus!');
+    }
+    else if (markMe.isPowered && (Date.now() - markMe.timer) / 1000 > 300) {     // if > 5 mins;
+      Markers.update({ _id: markMe._id }, { $set: { isPowered:false, timer: 0 }});
+      markMe.timer = 0;
+    }
   }
 }
 
@@ -129,10 +205,9 @@ Template.main.onCreated(function() {
     var geo = Geolocation.latLng();
     if (!geo)
       geo = { lat: 21.30886, lng: -157.80858 };
-
     if (!game) {
       if (gameId === '1') {     // params are ALWAYS STRINGS;
-        Games.insert({ _id: gameId, lat: geo.lat, lng: geo.lng, players: {} });
+        Games.insert({ _id: gameId, lat: geo.lat, lng: geo.lng, pacman: '', players: {} });
         game = Games.findOne({ _id: gameId });
       }
       else
@@ -148,6 +223,8 @@ Template.main.onCreated(function() {
         mapInstance.setCenter(geo);    // update the DB to reactively update others;
         Markers.update({ _id: markMe._id }, { $set: { lat: geo.lat, lng: geo.lng }});
         detectGhosts();
+        detectPowerUps();
+        detectBonuses();
       }
     });
 
@@ -160,11 +237,11 @@ Template.main.onCreated(function() {
         Meteor.clearTimeout(initId);
       }
       else if (Meteor.userId() && geo) {
-        var isGhost = Object.keys(gamers).length > 0;     // first gamer to play is the PACMAN!
+        var isGhost = game.pacman !== '';
         if (!document) {      // user has never played, SO INSERT NEW MARKER!
-          // Markers fields: _id, lat, lng, userId, username, points, isGhost, lastCollide
+          // Markers fields: _id, lat, lng, userId, username, points, timer, isGhost;
           markerId = Markers.insert({ lat: geo.lat, lng: geo.lng, startTime: Date.now(), userId: Meteor.userId(),
-                          username: Meteor.user().username, points: 0, isGhost: isGhost, lastCollide: 0 });
+                          username: Meteor.user().username, points: 0, timer: 0, isGhost: isGhost });
         }
         else {           // user joining this game, so update Markers;
           Markers.update({ _id: document._id }, { $set: { lat: geo.lat, lng: geo.lng, startTime: Date.now(), isGhost: isGhost }});
@@ -172,6 +249,10 @@ Template.main.onCreated(function() {
         }
         gamers[markerId] = document ? document.points : 0;
         Games.update({ _id: game._id }, { $set: { players: gamers }});
+        if (!isGhost) {
+          Games.update({ _id: game._id }, { $set: { pacman: markerId }});
+          console.log('not a ghost: ' + markerId);
+        }
       }             // update the Game to broadcast BOTH new/ updated Markers to current players;
     }, 1000);
 
@@ -195,17 +276,17 @@ Template.main.onCreated(function() {
       }
     });
 
-    var barImg = 'images/rsz_beer.png';
+    var barImg = 'http://i.imgsafe.org/deb639c.png';
     var service = new google.maps.places.PlacesService(mapInstance);
     service.nearbySearch({
       location: { lat: geo.lat, lng: geo.lng },
-      radius: 500,
-      types: ['bar']
+      radius: 2000,
+      types: ['cafe']
       }, processResults);
     service.nearbySearch({
       location: { lat: geo.lat, lng: geo.lng },
-      radius: 500,
-      types: ['cafe']
+      radius: 2000,
+      types: ['gas_station']
       }, processResults);
 
     function processResults(results, status, pagination) {
@@ -242,8 +323,10 @@ Template.main.onCreated(function() {
         var marker = new google.maps.Marker({
            map: mapInstance,
            icon: image,
-           title: place.name,
-           position: place.geometry.location
+           title: place.name,   // lat && lng are functions are place.geometry.location!
+           position: place.geometry.location,
+           lat: place.geometry.location.lat(),
+           lng: place.geometry.location.lng()
         });
         if (barImg)
           powerups.push(marker);
