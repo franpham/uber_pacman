@@ -1,11 +1,12 @@
 "use strict";
 
-var markers = {};           // the current Markers on the map;
+var markers = {};           // the current players on the map;
 var mapInstance = null;     // needed to add map markers & listeners;
 var googler = null;         // needed by outer functions;
-var infoWindow = null;      // pop-up that's reused when marker is active;
-var totalMarkers = 0;       // total # of markers shown;
-var markMe = null;          // the user's current position;
+var infoWindow = null;      // pop-up that's reused when marker is clicked;
+var markMe = null;          // marker of "this" player;
+var playerIndex = 0;        // the pic index of each player;
+var initId = 0;             // the Timeout ID to set markMe;
 
 Meteor.startup(function() {
   GoogleMaps.load();
@@ -21,11 +22,12 @@ Template.main.helpers({
     }
   },
   topicPics: function() {
-    var query = '';
+    var thisGame = Router.current().params.gameId;
+    var query = { gameId: thisGame };
     if (googler) {              // if no googler, markers are set by observe() in GoogleMaps.ready();
       Meteor.setTimeout(function() {
         var images = ImageData.find(query).fetch();
-        totalMarkers = images.length;
+        players = images.length;
         refreshMap(images);          // SET THE NEW MARKERS;
       }, 1000);                      // HACK: wait 1 sec so Meteor can finish templating;
     }
@@ -33,42 +35,94 @@ Template.main.helpers({
   }
 });
 
-Template.main.events({
-  "change #topics" : function (event) {
-    thisTopic = event.originalEvent.srcElement.value;
-    Router.go('/main/' + thisTopic);
-  }
-});
+function createMarker(marker) {
+  var markerObj = new google.maps.Marker({
+    animation: google.maps.Animation.DROP,
+    position: new google.maps.LatLng(marker.lat, marker.lng),
+    draggable: false,
+    map: mapInstance,
+    userId: marker.userId,
+    title: marker.username,
+    icon: ghosts[playerIndex],
+    label: playerIndex,
+    points: marker.points,
+    isGhost: marker.isGhost,
+    _id: marker._id       // the Marker's _id;
+  });
+  $('#' + marker._id + '_info').text(playerIndex + '. ' + marker.username + ': ' + marker.points);
+  playerIndex++;          // increment playerIndex;
+  addMarker(markerObj);
+}
+
+// newDocument & oldDocument are Mongo Markers objects; remove Marker from Map to set new position;
+function changeMarker(newDocument, oldDocument) {
+  markers[oldDocument._id].setMap(null);
+  markers[oldDocument._id].setPosition(new google.maps.LatLng(newDocument.lat, newDocument.lng));
+  markers[oldDocument._id].setMap(mapInstance);
+}
 
 // removeMarker expects a google.maps.Marker INSTANCE;
 function removeMarker(marker) {
-  googler.event.clearInstanceListeners(marker);
+  // googler.event.clearInstanceListeners(marker);
   delete markers[marker._id];   // remove the reference to the marker
   marker.setMap(null);          // remove the marker from the map
 }
 
 // addMarker expects a google.maps.Marker INSTANCE;
 function addMarker(marker) {      // update the marker's coordinates after dragging;
-  googler.event.addListener(marker, 'dragend', function(event) {
-    Markers.update(marker._id, { $set: { lat: event.latLng.lat(), lng: event.latLng.lng() }});
-  });
+  // googler.event.addListener(marker, 'dragend', function(event) {
+  // });
+  // ------------------    MARKERS ARE UPDATED WHENEVER USER FINISH DRAGGING IT    --------------
 
   marker.addListener('click', function() {
-    var image = '<a href="' + marker.picUrl + '" target="_blank"><img src="' + marker.picUrl + '" /></a>';
-    infoWindow.setContent(image);
+    var marker = markers[this._id];
+    var info = '<div class="player">' + marker.username + ': ' + marker.points + '</div>';
+    infoWindow.setContent(info);
     infoWindow.open(mapInstance, marker);
   });
-  // ------------------    MARKERS ARE UPDATED WHENEVER USER FINISH DRAGGING IT    --------------
   markers[marker._id] = marker;   // Store marker instance within the markers dict;
 }
 
+function observeMarkers(userIds) {
+  Markers.find({ _id: { $in: userIds }}).observe({
+    added: function(newDocument) {         // ADDED IS ALSO CALLED WHEN OBSERVE IS CALLED;
+      createMarker(newDocument);
+    },
+    changed: function(newDocument, oldDocument) {
+      changeMarker(newDocument, oldDocument);   // newDocument & oldDocument are Markers objects;
+    },
+    removed: function(oldDocument) {
+      removeMarker(oldDocument);
+    }
+  });
+}
+
+// NEED EVENT HANDLER FOR LOGGING OUT;
+
 Template.main.onCreated(function() {
   var self = this;      // set BEFORE GoogleMaps.ready();
-
   GoogleMaps.ready('map', function(map) {
     console.log("GoogleMaps is ready!");
     googler = google.maps;
     mapInstance = map.instance;
+    infoWindow = new google.maps.InfoWindow({ content: '' });
+    var gameId = Router.current().params.gameId;
+    var game = Games.findOne({ _id: gameId });
+    if (!game)
+      return Router.go('/404/' + gameId);     // redirect if no game found;
+    else
+      mapInstance.setCenter(new google.maps.LatLng(game.lat, game.lng));
+
+    self.autorun(function() {     // --------------   AUTO UPDATE THE USER'S POSITION   ---------------------
+      var geo = Geolocation.latLng();
+      if (!Meteor.userId() || !geo)
+        return;
+      else if (markMe) {
+        markMe.setPosition(geo);
+        mapInstance.setCenter(markMe.getPosition());    // update the DB to reactively update others;
+        Markers.update({ _id: markMe._id }, { $set: { lat: geo.lat, lng: geo.lng }});
+      }
+    });
 
     // --------------------------      filepicker widget must be added AFTER GoogleMaps loaded;    ----------------------
     var upload = $('#upload').get()[0];
@@ -88,60 +142,49 @@ Template.main.onCreated(function() {
       });
     }; // -----------------  MARKERS ARE INSERTED WHENEVER USER CLICKS ON THE MAP  -------------------------
 
-    self.autorun(function() {     // --------------   AUTO UPDATE THE USER'S POSITION   ---------------------
+    initId = Meteor.setTimeout(function() {   // set "this" player's Marker;
       var geo = Geolocation.latLng();
-      if (!geo)
-        return;
-      else if (markMe) {
-        markMe.setPosition(geo);
-        mapInstance.setCenter(markMe.getPosition());
+      if (markMe) {
+        Meteor.clearTimeout(initId);
       }
-      else {
+      else if (Meteor.userId() && geo) {
+        var document = Marker.findOne({ userId: Meteor.userId() });
         markMe = new google.maps.Marker({
-          draggable: false,
           animation: google.maps.Animation.DROP,
           position: new google.maps.LatLng(geo.lat, geo.lng),
-          map: mapInstance,
-          userId: Meteor.userId(),
-          title: Meteor.user().username,
-          label: '*'
-        });
-      }
-    });
-    infoWindow = new google.maps.InfoWindow({ content: '' });
-    Meteor.setTimeout(function() {
-      $(document).foundation();  // MUST call foundation() after DOM loading;
-    }, 1000);   // args: 'tooltip', 'reflow'
-
-    // newDocument & oldDocument are Mongo Markers objects;
-    Markers.find().observe({
-      // NOTE: ADDED IS ALSO CALLED WHEN DOM IS 1ST LOADED;
-      added: function(document) {   // document is a Mongo Marker object;
-        var labelText = labelIndex < LABELS.length ? LABELS[labelIndex++ % LABELS.length] : '';
-        var picLabel =  'Created by ' + document.username;
-        var marker = new google.maps.Marker({
           draggable: false,
-          animation: google.maps.Animation.DROP,
-          position: new google.maps.LatLng(document.lat, document.lng),
           map: mapInstance,
-          userId: Meteor.userId(),
-          picUrl: document.picUrl,
-          title: picLabel,
-          label: labelText,
-          _id: document._id
-          // Store _id in marker to update the database in the 'dragend' event;
+          userId: document.userId,
+          title: document.username,
+          label: playerIndex,
+          points: document.points,
+          isGhost: document.isGhost,
+          _id: document._id     // the Marker's _id;
         });
-        $('#' + document._id + '_tip').prop('title', picLabel);
-        $('#' + document._id + '_cap').text(labelText);
-        addMarker(marker);
+        Markers.update({ _id: markMe._id }, { $set: { lat: geo.lat, lng: geo.lng }});
+        $('#' + document._id + '_info').text(playerIndex + '. ' + document.username + ': ' + document.points);
+        playerIndex++;          // increment playerIndex;
+        addMarker(markMe);
+      }
+    }, 1000);
+
+    // observe the Game so when new players are added to a Game, new Markers are created;
+    Games.find({ _id: gameId }).observe({
+      added: function(newDocument) {
+        // Markers (Users) fields: _id, lat, lng, userId, username, gameId, points, isGhost
+        var userIds = Object.keys(newDocument.players);    // only observe players in current Game;
+        observeMarkers(userIds);
+      },
+      removed: function(oldDocument) {
+        // do nothing, games are never removed;
       },
       changed: function(newDocument, oldDocument) {
-        markers[oldDocument._id].setMap(null);        // remove from Map to set new position;
-        markers[oldDocument._id].setPosition(new google.maps.LatLng(newDocument.lat, newDocument.lng));
-        markers[oldDocument._id].setMap(mapInstance);
-      },
-      removed: function(oldDocument) {       // oldDocument is a Mongo Markers object;
-        removeMarker(markers[oldDocument._id]);
+        var newIds = Object.keys(newDocument.players);
+        var oldIds = Object.keys(markers);
+        var userIds= newIds.filter(function(val) {
+          return oldIds.indexOf(val) === -1;
+        });
+        observeMarkers(userIds);
       }
     });
   });

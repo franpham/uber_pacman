@@ -27,5 +27,6 @@ Router.configure({
 Router.route('/', { template: '' });
 Router.route('/login', { template: '', name: 'login' });
 Router.route('/main');
-Router.route('/map');
+Router.route('/map/:gameId');
+Router.route('/404/:gameId');
 // By default the router will render the capitalized name of the template, with punctuations removed and next letter capped.

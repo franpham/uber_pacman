@@ -1,21 +1,21 @@
 {
-  "name": "ispy",
+  "name": "uber_pacman",
   "version": "1.0.0",
-  "description": "A Meteor app that uses the Googe Maps API and filepicker.io to show linked and uploaded pics in real-time.",
+  "description": "A Meteor app for playing multi-player Pacman while using Uber.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/franpham/ISpy.git"
+    "url": "git+https://github.com/franpham/uber_pacman.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/franpham/ISpy/issues"
+    "url": "https://github.com/franpham/uber_pacman/issues"
   },
-  "homepage": "https://github.com/franpham/ISpy#readme",
+  "homepage": "https://github.com/franpham/uber_pacman#readme",
   "dependencies": {
     "gulp": "^3.9.0",
     "gulp-sass": "^2.0.4"
