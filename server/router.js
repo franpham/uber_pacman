@@ -54,6 +54,7 @@ Router.route('/authorize', { where: 'server' })
           console.log(response.content)
 
           var profile = Meteor.users.findOne({_id: userId })
+          // var profile = Meteor.user().profile;
           profile['accessToken'] = access_token;
           console.log(profile);
           Meteor.users.update({ _id: userId }, { $set: { profile: profile }});
