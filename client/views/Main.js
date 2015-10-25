@@ -1,11 +1,15 @@
 "use strict";
+var FRUITS = ['images/rsz_apple.png', 'images/rsz_banana.png', 'images/rsz_cherry.png', 'images/pineapple.png', 'images/rsz_strawberry.png', 'images/rsz_watermelon.png'];
 
 var markers = {};           // the current players on the map;
 var mapInstance = null;     // needed to add map markers & listeners;
 var googler = null;         // needed by outer functions;
 var infoWindow = null;      // pop-up that's reused when marker is clicked;
 var markMe = null;          // marker of "this" player;
+var bonuses = [];           // the bonus fruits;
+var powerups = [];          // the power-ups beers;
 var playerIndex = 0;        // the pic index of each player;
+var gameId = 0;             // the game being played;
 
 Meteor.startup(function() {
   GoogleMaps.load();
@@ -19,17 +23,20 @@ Template.main.helpers({
       var geo = Geolocation.latLng();
       return { zoom: 12, center: (geo ? new google.maps.LatLng(geo.lat, geo.lng) : new google.maps.LatLng(21.30886, -157.80858)) };
     }
-  },
-  topicPics: function() {
-    var thisGame = Router.current().params.gameId;
-    var query = { _id: thisGame };
-    if (googler) {              // if no googler, markers are set by observe() in GoogleMaps.ready();
-      Meteor.setTimeout(function() {
-        var images = ImageData.find(query).fetch();
-        refreshMap(images);          // SET THE NEW MARKERS;
-      }, 1000);                      // HACK: wait 1 sec so Meteor can finish templating;
+  }
+});
+
+Template.main.events({
+  'click #quitGame' : function (event) {
+    var game = Games.findOne({ _id: gameId });
+    if (game && markMe) {
+      var gamers = game.players;
+      var secs = (Date.now() - markMe.startTime) / 1000;
+      markMe.points += secs;
+      gamers[markMe._id] = markMe.points;
+      Games.update({ _id: game._id }, { $set: { players: gamers }});
+      Router.go('/main');
     }
-    return ImageData.find(query);    // SET THE NEW IMAGES;
   }
 });
 
@@ -49,7 +56,7 @@ function createMarker(marker) {
   });
   if (marker.userId === Meteor.userId())
     markMe = markerObj;
-  var playerInfo = $('<li id="' + marker._id + '_info" />').append($('<span id="' + marker._id + '_pts />').text(marker.points))
+  var playerInfo = $('<li id="' + marker._id + '_name" />').append($('<span id="' + marker._id + '_pts />').text(marker.points))
     .text(playerIndex + '. ' + marker.username + ': ');
   $('#playerList').add(playerInfo);
   playerIndex++;     // increment playerIndex;
@@ -65,7 +72,7 @@ function changeMarker(newDocument, oldDocument) {
 
 function removeMarker(marker) {
   // googler.event.clearInstanceListeners(marker);
-  $('#playerList').remove('#' + marker._id + '_info');
+  $('#playerList').remove('#' + marker._id + '_name');
   delete markers[marker._id];   // remove the reference to the marker
   marker.setMap(null);          // remove the marker from the map
   // DO NOT decrement playerIndex, else markers' labels will not to change also;
@@ -76,7 +83,7 @@ function addMarker(marker) {      // update the marker's coordinates after dragg
   // });
   marker.addListener('click', function() {
     var marker = markers[this._id];
-    var info = '<div class="marker_info">' + marker.username + ': ' + marker.points + '</div>';
+    var info = '<div>' + marker.username + ': ' + marker.points + '</div>';
     infoWindow.setContent(info);
     infoWindow.open(mapInstance, marker);
   });
@@ -97,8 +104,6 @@ function observeMarkers(userIds) {
   });
 }
 
-// NEED EVENT HANDLER FOR QUITTING GAME;
-
 Template.main.onCreated(function() {
   var self = this;      // set BEFORE GoogleMaps.ready();
   GoogleMaps.ready('map', function(map) {
@@ -106,14 +111,14 @@ Template.main.onCreated(function() {
     googler = google.maps;
     mapInstance = map.instance;
     infoWindow = new google.maps.InfoWindow({ content: '' });
-    var gameId = Router.current().params.gameId;
+    gameId = Router.current().params.gameId;
     var game = Games.findOne({ _id: gameId });
 
     if (!game)
       return Router.go('/404/' + gameId);     // redirect if no game found;
     else
       mapInstance.setCenter(new google.maps.LatLng(game.lat, game.lng));
-    self.autorun(function() {     // --------------   AUTO UPDATE THE USER'S POSITION   ---------------------
+    self.autorun(function() {     // ------------   AUTO UPDATE THE USER'S POSITION   ------------
       var geo = Geolocation.latLng();
       if (!Meteor.userId() || !geo)
         return;
@@ -124,26 +129,8 @@ Template.main.onCreated(function() {
       }
     });
 
-    // --------------------------      filepicker widget must be added AFTER GoogleMaps loaded;    ----------------------
-    var upload = $('#upload').get()[0];
-    upload.onchange = function (event) {
-      if (!Meteor.userId())
-        return;
-      var url = event.originalEvent.fpfile.url;     // markerId will be updated after user clicks on the map;
-      var picId = ImageData.insert({ markerId: '', userId: Meteor.userId(), username: Meteor.user().username,
-                       picUrl: url, upCount: 0, downCount: 0, topic: thisTopic, createdAt: Date.now() });
-
-      // Meteor handles adding onePic template by observing the database, and adding a marker via observe() below;
-      var mapListener = google.maps.event.addListener(mapInstance, 'click', function(event) {
-        var markId = Markers.insert({ lat: event.latLng.lat(), lng: event.latLng.lng(), picUrl: url,
-                     userId: Meteor.userId(), username: Meteor.user().username });
-        ImageData.update({ _id: picId}, { $set: { markerId: markId }});   // update the ImageData's markerId;
-        google.maps.event.removeListener(mapListener);                    // prevent adding multiple markers;
-      });
-    }; // -----------------  MARKERS ARE INSERTED WHENEVER USER CLICKS ON THE MAP  -------------------------
-
-    var markerId = 0;
-    var initId = Meteor.setTimeout(function() {   // set "this" player's Marker;
+    var markerId = 0;   // ------------------ set "this" player's Marker -----------------;
+    var initId = Meteor.setTimeout(function() {
       var gamers = game.players;
       var geo = Geolocation.latLng();
       var document = Marker.findOne({ userId: Meteor.userId() });
@@ -152,12 +139,12 @@ Template.main.onCreated(function() {
       }
       else if (Meteor.userId() && geo) {
         if (!document) {      // user has never played, SO INSERT NEW MARKER!
-          // Markers fields: _id, lat, lng, userId, username, points, isGhost
-          markerId = Markers.insert({ lat: geo.lat, lng: geo.lng, userId: Meteor.userId(),
-                          username: Meteor.user().username, points: 0, isGhost: false });
+          // Markers fields: _id, lat, lng, userId, username, points, isGhost, lastCollide
+          markerId = Markers.insert({ lat: geo.lat, lng: geo.lng, startTime: Date.now(), userId: Meteor.userId(),
+                          username: Meteor.user().username, points: 0, isGhost: false, lastCollide: 0 });
         }
         else {           // user joining this game, so update Marker;
-          Markers.update({ _id: document._id }, { $set: { lat: geo.lat, lng: geo.lng }});
+          Markers.update({ _id: document._id }, { $set: { lat: geo.lat, lng: geo.lng, startTime: Date.now() }});
           markerId = document._id;
         }
         gamers[markerId] = document ? document.points : 0;
@@ -180,8 +167,68 @@ Template.main.onCreated(function() {
         var userIds= newIds.filter(function(val) {
           return oldIds.indexOf(val) === -1;
         });
-        observeMarkers(userIds);
+        if (userIds.length > 0)
+          observeMarkers(userIds);
       }
     });
+
+    var barImg = 'images/beer.png';
+    var service = new google.maps.places.PlacesService(mapInstance);
+    service.nearbySearch({
+      location: { lat: geo.lat, lng: geo.lng },
+      radius: 500,
+      types: ['bar']
+      }, processResults);
+    barImg = null;    // set to null for fruit images;
+    service.nearbySearch({
+      location: { lat: geo.lat, lng: geo.lng },
+      radius: 500,
+      types: ['cafe']
+      }, processResults);
+
+    function processResults(results, status, pagination) {
+      if (status !== google.maps.places.PlacesServiceStatus.OK) {
+       return;
+      } else {
+        createMarkers(results);
+        if (pagination.hasNextPage) {
+          var moreButton = document.getElementById('more');
+          if (moreButton) {
+            moreButton.disabled = false;
+            moreButton.addEventListener('click', function() {
+             moreButton.disabled = true;
+             pagination.nextPage();
+            });
+          }
+        }
+      }
+    }
+    function createMarkers(places) {
+      var bounds = new google.maps.LatLngBounds();
+      var placesList = document.getElementById('places');
+
+      for (var i = 0, place; place = places[i]; i++) {
+        var image = {
+         // url is where you put the var name of icon
+         url: barImg ? barImg : FRUITS[i % FRUITS.length],
+         size: new google.maps.Size(71, 71),
+         origin: new google.maps.Point(0, 0),
+         anchor: new google.maps.Point(17, 34),
+         scaledSize: new google.maps.Size(25, 25)
+        };
+        var marker = new google.maps.Marker({
+           map: mapInstance,
+           icon: image,
+           title: place.name,
+           position: place.geometry.location
+        });
+        if (barImg)
+          powerups.push(marker);
+        else
+          bonuses.push(marker);
+        bounds.extend(place.geometry.location);
+      }
+      mapInstance.fitBounds(bounds);
+    }
   });
 });

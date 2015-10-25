@@ -1,26 +1,6 @@
-@import url(https://fonts.googleapis.com/css?family=Architects+Daughter);
-@import url(https://fonts.googleapis.com/css?family=Chewy|Kaushan+Script|Lobster+Two|Press+Start+2P|Megrim);
-@import "partials/clearfix";
+// ----------------    MUST REMOVE gulpfile.js before running "meteor";   --------------------
 
-// -------------    MUST REMOVE gulpfile.js from folder BEFORE running "meteor"   ---------------
-
-//  ============= Variables ==============
-$font-Arch:  Architects Daughter;
-$font-Megrim: Megrim;
-
-#topics {
-  width: 128px !important;
-}
-.label {
-  cursor: auto !important;
-}
-
-#upload {
-  color: #008CBA !important;
-}
-#upload:hover {
-  color: #79CBBF;
-}
+@import url(https://fonts.googleapis.com/css?family=Press+Start+2P);
 
 #heading {
   font-weight: bold;
@@ -29,65 +9,62 @@ $font-Megrim: Megrim;
   padding: 8px 0 0 8px;
 }
 
-.coolImage {
-  cursor: pointer;
-}
-.imgIcon {
-  cursor: pointer;
-  width: 32px;
-  height: 32px;
-}
-.iconGroup {
-  opacity: 0.6;
-  font-size: 12pt;
-  font-family: $font-Arch;
-  background-color: #F0E68C;
-}
+//  ============= Variables ==============
+$font:  'Press Start 2P';
 
-// ============= Main Content ================
-html, body{
-  background-image: url("images/spectrum.jpg");
+html, body {
+  background-color: #2F4F4F;
   background-size: cover;
-  background-color: #FAFAFA;
+  background-image: url('images/maze.jpg');
+  // background-image: url("https://lh3.googleusercontent.com/-xh7YZjFDfJ0/VM3CEothxXI/AAAAAAAAADs/QTWBuypW5hI/s630-fcrop64=1,0d870000fd6fc8fb/pac_man_maze_wallpaper_by_spdy4-d6by9r5.png");
 }
 
 html, body, h1, h2, h3, h4, h5, h6 {
   text-align:center;
-  font-family: $font-Arch;
+  font-family: $font;
+  color:#0033FF;
+}
+h1 {
+  height: 500px;
+  margin: 50px;
+  text-align: center;
+  color: #000;
+  margin-top: 50px;
+
+  font-family: $font;
+  padding-top: 50px;
 }
 
-#loginDiv {
-  position: relative;
-  top: 50%;
-  transform: translateY(-50%);
-}
-#login {
-  display: inline-block;
-  padding: 16px;
-  border-radius: 1em;
-  background-color: #79CBBF;
-  font-family: $font-Arch;
-  opacity: 0.7;
+//loginBut
+#loginBut {
+  padding-top: 100px;
+  font-family: $font;
 }
 
 // ============= Top Nav =====================
+//Welcome
 header {
-  background-color: #79CBBF;
-  border-bottom: 1px solid #A2A2A2;
+  background-color: #000;
+  border-bottom: 4px solid #0033FF;
 
-  h5{
+  h5 {
     display: inline-block;
-    background-color: #79CBBF;
+    background-color: #000;
     float: left;
-    font-size: 15px;
+    font-size: 11px;
     margin-left: 10px;
+    color: #0033FF;
   }
-  h3{
-    font-family: $font-Megrim;
-    width: 200px;
+  h3 {
+    font-family: $font;
     font-size: 25px;
+    color: #FDFF0C;
     display: inline-block;
-    background-color: #79CBBF;
+    background-color: #000;
+    margin-left: 0 ;
+  }
+  a#login-name-link {
+    color: #0033FF;
   }
 }
 
@@ -96,6 +73,9 @@ header {
   width: 100%;
   max-width: 100%;
   height: 500px;
+  margin-top: 5%;
+  border-radius: 25px;
+  border: 7px solid #0033FF;
 }
 .row {
   height: 500px;
@@ -105,38 +85,63 @@ header {
   margin-top: 10px;
   padding-top: 10px;
   border-radius: 10px;
-  border: 1px solid #A2A2A2;
+  border: 1px solid #0033FF;
   background-color: white;
   opacity: 0.6;
 }
+li {
+  font-size: 10px;
+  text-align: left;
+  margin-left: 5%;
+  margin-right: 5%;
+}
 
 // ================ Side-Nav ======================
-.side-nav {
-  border-radius: 10px;
-  border: 1px solid #A2A2A2;
-  padding: 15px;
-  padding-top: 20px;
-  width: 256px;
-  margin-top: 35px;
-  height: 800px;
-  overflow: scroll;
-}
-.reveal-modal{
-  width: 500px;
-}
+ #score-table {
+  margin-top: 3.5%;
+ }
+  #table {
+    margin-top: 16%;
+  }
+  h4 {
+    color: #FDFF0C;
+  }
+ #scoreboard {
+  background-color: #000;
+  font-family: $font;
+  font-size: auto;
+
+  .player-name {
+    color: #0033FF;
+    font-size: 11px;
+  }
+  .player-pts {
+    color: #FDFF0C;
+    font-size: 11px;
+  }
+ }
 
 // =============== Top Buttons ===============
 .button {
   background-color: transparent;
   padding: 10px;
-  font-family: $font-Arch;
-  font-size: 20px;
-  color: #008CBA;
+  font-family: $font;
+  border: 3px solid #0033FF;
+  font-size: 10px;
+  color: #000;
+    color: #FDFF0C;
   &:hover {
     background-color: transparent;
-    color: #79CBBF;
+    color: #0033FF;
   }
 }
+#hover {
+    padding-right: 10px;
+  }
+  h6 {
+    text-align: right;
+    font-size: 15px;
+  }
 
 // ============== Footer ====================
 #borderimg {
@@ -154,21 +159,23 @@ footer.row {
 #footer-row {
   height: 128px;
 }
-
-// ============ photo caption ===============
-
-.picDiv {
-  // position: relative;
+p {
+  font-size: 10px;
 }
-.picDiv .caption {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  top: 0px;
-  left: 0px;
-  color: navy;
-  background-color: #F0E68C;
-  text-align: center;
-  font-weight: bold;
-  opacity: 0.6;
+
+// ================ Active Games ===============
+
+a.button.expand {
+  padding: 10px;
+  margin-top: 5%;
+  display: inline-block;
+  margin-bottom: 0%;
+  width: 30%;
+  margin-left: 36%;
+}
+
+// ============ Error 404 ==================
+#error {
+  color: blue;
+  font-size: 20px;
 }
