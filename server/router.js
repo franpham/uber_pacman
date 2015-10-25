@@ -1,3 +1,20 @@
+Router.route('/authWithUber', { where: 'server'})
+  .get(function() {
+      // Listen to incoming HTTP requests, can only be used on the server
+      // WebApp.connectHandlers.use(function(req, res, next) {
+      //   res.setHeader("Access-Control-Allow-Origin", "*");
+      //   return next();
+      // });
+
+      this.response.writeHead(302, {
+        'Location': 'https://login.uber.com/oauth/v2/authorize?client_id=eVsjM4L5repfO6oBG3ibyFXZMbeRtx2F&response_type=code&scope=request%20profile'
+      });
+
+
+
+      this.response.end();
+    });
+
 Router.route('/authorize', { where: 'server' })
   .get(function () {
     var code = this.params.query.code
@@ -39,11 +56,15 @@ Router.route('/authorize', { where: 'server' })
       access_token = data.access_token;
       console.log("access token: " + access_token);
 
-      HTTP.call( 'GET', 'https://api.uber.com/v1/me',
+      HTTP.call( 'POST', 'https://sandbox-api.uber.com/v1/requests',
         {
-          // data: {
-          //   scope: "profile"
-          // },
+          data: {
+            start_latitude: 21.296753,
+            start_longitude: -157.856681,
+            end_latitude: 21.307690,
+            end_longitude: -157.809427,
+            product_id: "6e731b60-2994-4f68-b586-74c077573bbd"
+          },
           headers: {
             "Authorization": "Bearer " + access_token
           },
@@ -53,15 +74,34 @@ Router.route('/authorize', { where: 'server' })
           console.log(response)
           console.log(response.content)
 
-          var profile = Meteor.users.findOne({_id: userId })
-          // var profile = Meteor.user().profile;
-          profile['accessToken'] = access_token;
-          console.log(profile);
-          Meteor.users.update({ _id: userId }, { $set: { profile: profile }});
+          data = JSON.parse(response.content);
+          request_id = data.request_id;
 
-          self.response.statusCode = 302;
-          self.response.setHeader('Location', '/');
-          self.response.end('Arbitrary success message');          
+          HTTP.call( 'GET', 'https://sandbox-api.uber.com/v1/requests/' + request_id,
+            {
+              headers: {
+                "Authorization": "Bearer " + access_token
+              },
+            },
+            function( error, response ) {
+              console.log(response)
+              console.log('SANDBOX: ' + response.content)
+
+
+
+              var profile = Meteor.users.findOne({_id: userId })
+              // var profile = Meteor.user().profile;
+              profile['accessToken'] = access_token;
+              console.log(profile);
+              Meteor.users.update({ _id: userId }, { $set: { profile: profile }});
+
+              self.response.statusCode = 302;
+              self.response.setHeader('Location', '/main/1');
+              self.response.end('Arbitrary success message');          
+              
+            });
+
+
           }
 
         )
