@@ -24,6 +24,10 @@ Router.configure({
   }
 });
 
+Router.route('/callback', function() {
+  this.redirect('/authorize?code=' + this.params.query.code + "&userId=" + Meteor.userId() )
+});
+
 Router.route('/', { template: '' });
 Router.route('/login', { template: '', name: 'login' });
 Router.route('/main');

@@ -1,9 +1,11 @@
-Router.route('/callback', { where: 'server' })
+Router.route('/authorize', { where: 'server' })
   .get(function () {
     var code = this.params.query.code
     console.log("code: " + code);
+    console.log("userId: " + this.params.query.userId );
 
-
+    // self = the "this" context in Router.get(function() { })
+    var self = this
 
     HTTP.call( 'POST', 'https://login.uber.com/oauth/v2/token', 
       {
@@ -31,5 +33,31 @@ Router.route('/callback', { where: 'server' })
 
       console.log(response);
       console.log(response.content)
+
+      data = JSON.parse(response.content);
+      access_token = data.access_token;
+      console.log("access token: " + access_token);
+
+      HTTP.call( 'GET', 'https://api.uber.com/v1/me',
+        {
+          // data: {
+          //   scope: "profile"
+          // },
+          headers: {
+            "Authorization": "Bearer " + access_token
+          },
+
+        },
+        function( error, response ) {
+          console.log(response)
+          console.log(response.content)
+
+          self.response.statusCode = 302;
+          self.response.setHeader('Location', '/');
+          self.response.end('Arbitrary success message');          
+          }
+
+        )
+
     });
   });
