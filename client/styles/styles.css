@@ -11,7 +11,8 @@
 html, body {
   background-color: #2F4F4F;
   background-size: cover;
-  background-image: url("images/maze.jpg"); }
+  background-image: url("https://lh3.googleusercontent.com/-xh7YZjFDfJ0/VM3CEothxXI/AAAAAAAAADs/QTWBuypW5hI/s630-fcrop64=1,0d870000fd6fc8fb/pac_man_maze_wallpaper_by_spdy4-d6by9r5.png");
+}
 
 /* line 22, stdin */
 html, body, h1, h2, h3, h4, h5, h6 {
@@ -62,7 +63,7 @@ header {
 .map-container {
   width: 100%;
   max-width: 100%;
-  height: 500px;
+  height: 800px;
   margin-top: 5%;
   border-radius: 25px;
   border: 7px solid #0033FF; }
@@ -77,9 +78,11 @@ header {
   margin-top: 10px;
   padding-top: 10px;
   border-radius: 10px;
+  overflow: auto;
+  height: 200px;
   border: 1px solid #0033FF;
   background-color: white;
-  opacity: 0.6; }
+  opacity: 0.8; }
 
 /* line 92, stdin */
 li {
@@ -102,7 +105,7 @@ h4 {
 
 /* line 109, stdin */
 #scoreboard {
-  background-color: #000;
+  background-color: #F5F5DC;
   font-family: "Press Start 2P";
   font-size: auto; }
   /* line 114, stdin */
